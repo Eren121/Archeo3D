@@ -1,0 +1,9 @@
+.animControls {
+
+    position: absolute;
+  	left: 0;
+    top: 0;
+    background-color: red;
+    width: 25%;
+    height: 25%;
+}

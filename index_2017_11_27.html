@@ -1,0 +1,634 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Chargement de poteries par three.js</title>
+
+		<meta charset="utf-8">
+		<meta name="robots" content="noindex,nofollow"/>
+
+		<meta name="author" content="Eric DESJARDIN">
+		<meta name="description" content="Chargement 3D d'objets archéologiques">
+		<meta name="keywords" content="3D, Archeologie">
+		<meta name="remerciements" content="threejs OBJLoader2">
+
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		
+	
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000;
+				color: #fff;
+				margin: 0 0 0 0;
+				padding: 0 0 0 0;
+				border: none;
+				cursor: default;
+			}
+			footer {
+				border: 1px solid green;
+				background-color: white;
+				color: green;
+				font-size: 1.2em;
+			}
+			.boite_verte {
+				border: 1px solid green;
+				background-color: white;
+				color: green;
+			}
+			.boite_verte A {
+				color: green;
+			}
+			.boite_verte A:visited {
+				color: darkgreen;
+			}
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+			}
+			#info a {
+				color: #f00;
+				font-weight: bold;
+				text-decoration: underline;
+				cursor: pointer
+			}
+			#glFullscreen {
+				width: 100%;
+				height: 100vh;
+				min-width: 640px;
+				min-height: 360px;
+				position: relative;
+				overflow: hidden;
+				z-index: 0;
+			}
+			#example {
+				width: 100%;
+				height: 100%;
+				top: 0;
+				left: 0;
+				background-color: #000000;
+			}
+			#feedback {
+				color: darkorange;
+			}
+			#dat {
+				user-select: none;
+				position: absolute;
+				left: 0;
+				top: 0;
+				z-Index: 200;
+			}
+			#fileUploadInput {
+				display: none;
+			}
+		</style>
+
+	</head>
+
+	<body>
+		<audio src="musiques/Gregorian-Song/Gregorian-Song.mp3" preload="auto" loop></audio>
+		<div id="glFullscreen">
+			<canvas id="example"></canvas>
+		</div>
+		<div id="dat">
+
+		</div>
+		<footer id="pied_de_page">
+			Créé par <a href="">Eric Desjardin</a> du laboratoire <a href="crestic.univ-reims.fr">CReSTIC</a> à partir de photographies du tombeau de Jovin et des logiciels 
+			<a href="https://remake.autodesk.com" target="ACR">AutoCad Remake</a>, 
+			<a href="http://www.meshlab.net" target="ML">MeshLab</a> et 
+			<a href="https://threejs.org/" target="3JS">Three.js</a>
+			avec la collaboration du <a href="http://www.reims.fr/325/decouvrir-le-musee.htm" target="MSR">musée Saint-Remi</a>,
+			du <a href="http://www.reims-histoire-archeologie.com/" target="RHA">RHA</a>,
+			du <a href="http://geaca-reims.blogspot.fr/" target="GEACA">GEACA</a>
+			et du <a href="http://www.univ-reims.fr/minisite_52/" target="GEGENAA">GEGENAA</a>
+		</footer>
+		<div id="info">
+			<!-- <a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - OBJLoader2 direct loader test -->
+			<a href="http://www.reims-histoire-archeologie.com/" target="RHA">Tombeau de Jovin</a> - 
+			<a href="https://fr.wikipedia.org/wiki/Mus%C3%A9e_Saint-Remi_de_Reims" target="RSM" rel="noopener">Musée Saint-Remi</a> - 
+			<a href="http://www.reims.fr/325/decouvrir-le-musee.htm" target="RSM">Reims</a> - 
+			<a class="boite_verte" href="#pied_de_page" title="informations sur l'application">Informations</a>
+
+			<div id="feedback"></div>
+		</div>
+		<input id="fileUploadInput" type="file" name="files[]" multiple accept=".obj,.mtl" />
+
+		<script src="js/Detector.js"></script>
+		<script src="build/three.js"></script>
+		<script src="js/controls/TrackballControls.js"></script>
+		<script src="js/loaders/MTLLoader.js"></script>
+		<script src="js/libs/dat.gui.min.js"></script>
+
+		<script src="js/loaders/OBJLoader2.js"></script>
+		<script src="js/loaders/WWOBJLoader2.js"></script>
+		<script>
+
+			'use strict';
+
+			var ChargeObjJovin = (function () {
+
+				var Validator = THREE.OBJLoader2.prototype._getValidator();
+
+				function ChargeObjJovin( elementToBindTo ) {
+					this.renderer = null;
+					this.canvas = elementToBindTo;
+					this.aspectRatio = 1;
+					this.recalcAspectRatio();
+
+					this.scene = null;
+					this.cameraDefaults = {
+						posCamera: new THREE.Vector3( 0.0, 175.0, 500.0 ),
+						posCameraTarget: new THREE.Vector3( 0, 0, 0 ),
+						near: 0.1,
+						far: 10000,
+						fov: 45
+					};
+					this.camera = null;
+					this.cameraTarget = this.cameraDefaults.posCameraTarget;
+
+					this.controls = null;
+
+					this.smoothShading = true;
+					this.doubleSide = true;   
+					this.streamMeshes = true;
+					// DEJ
+					this.showAxis = false;
+
+					// Objet dans lequel sera chargé la poterie
+					this.pivot = null;
+					// Plan de base 
+					this.axis = null;
+
+					this.wwObjLoader2 = new THREE.OBJLoader2.WWOBJLoader2();
+//					this.wwObjLoader2 = new THREE.OBJLoader2.WWOBJLoader2();
+					this.wwObjLoader2.setCrossOrigin( 'anonymous' );
+
+					
+
+					// Check for the various File API support.
+					this.fileApiAvailable = true;
+					if ( window.File && window.FileReader && window.FileList && window.Blob ) {
+
+						console.log( 'File API is supported! Enabling all features.' );
+
+					} else {
+
+						this.fileApiAvailable = false;
+						console.warn( 'File API is not supported! Disabling file loading.' );
+
+					}
+				}
+
+				ChargeObjJovin.prototype.initGL = function () {
+					this.renderer = new THREE.WebGLRenderer( {
+						canvas: this.canvas,
+						antialias: true,
+						autoClear: true
+					} );
+					this.renderer.setClearColor( 0x050505 );
+
+					this.scene = new THREE.Scene();
+
+					this.camera = new THREE.PerspectiveCamera( this.cameraDefaults.fov, this.aspectRatio, this.cameraDefaults.near, this.cameraDefaults.far );
+					this.resetCamera();
+					this.controls = new THREE.TrackballControls( this.camera, this.renderer.domElement );
+
+					var ambientLight = new THREE.AmbientLight( 0x404040 );
+					var directionalLight1 = new THREE.DirectionalLight( 0xC0C090 );
+					var directionalLight2 = new THREE.DirectionalLight( 0xC0C090 );
+
+					directionalLight1.position.set( -100, -50, 100 );
+					directionalLight2.position.set( 100, 50, -100 );
+
+					this.scene.add( directionalLight1 );
+					this.scene.add( directionalLight2 );
+					this.scene.add( ambientLight );
+
+					this.createAxis( false );
+
+					this.createPivot();
+				};
+
+				ChargeObjJovin.prototype.createAxis = function ( visibility ) {
+					this.axis = new THREE.GridHelper( 1200, 60, 0xFF4444, 0x404040 );
+//					this.axis.visible = visibility;
+					this.axis.name="Axis";
+									
+					this.scene.add( this.axis );
+				};
+
+				ChargeObjJovin.prototype.createPivot = function () {
+					this.pivot = new THREE.Object3D();
+					this.pivot.name = 'Pivot';
+					
+					this.scene.add( this.pivot );
+				};
+
+				ChargeObjJovin.prototype.initPostGL = function () {
+					var reportProgress = function ( content ) {
+						console.log( 'Progress: ' + content );
+					};
+					var materialsLoaded = function ( materials ) {
+						var count = Validator.isValid( materials ) ? materials.length : 0;
+						console.log( 'Loaded #' + count + ' materials.' );
+					};
+					var meshLoaded = function ( name, bufferGeometry, material ) {
+						console.log( 'Loaded mesh: ' + name + ' Material name: ' + material.name );
+					};
+					var completedLoading = function () {
+						console.log( 'Loading complete!' );
+					};
+					this.wwObjLoader2.registerCallbackProgress( reportProgress );
+					this.wwObjLoader2.registerCallbackCompletedLoading( completedLoading );
+					this.wwObjLoader2.registerCallbackMaterialsLoaded( materialsLoaded );
+					this.wwObjLoader2.registerCallbackMeshLoaded( meshLoaded );
+
+					return true;
+				};
+
+				ChargeObjJovin.prototype.loadFiles = function ( prepData ) {
+					prepData.setSceneGraphBaseNode( this.pivot );
+					prepData.setStreamMeshes( this.streamMeshes );
+					this.wwObjLoader2.prepareRun( prepData );
+					this.wwObjLoader2.run();
+				};
+
+				ChargeObjJovin.prototype._handleFileSelect = function ( event, pathTexture ) {
+					var fileObj = null;
+					var fileMtl = null;
+					var files = event.target.files;
+
+					for ( var i = 0, file; file = files[ i ]; i++) {
+
+						if ( file.name.indexOf( '\.obj' ) > 0 && fileObj === null ) {
+							fileObj = file;
+						}
+
+						if ( file.name.indexOf( '\.mtl' ) > 0 && fileMtl === null ) {
+							fileMtl = file;
+						}
+
+					}
+
+					if ( ! Validator.isValid( fileObj ) ) {
+						alert( 'Unable to load OBJ file from given files.' );
+					}
+
+					var fileReader = new FileReader();
+					fileReader.onload = function( fileDataObj ) {
+
+						var uint8Array = new Uint8Array( fileDataObj.target.result );
+						if ( fileMtl === null ) {
+
+							app.loadFilesUser({
+								name: 'userObj',
+								objAsArrayBuffer: uint8Array,
+								pathTexture: pathTexture,
+								mtlAsString: null
+							})
+
+						} else {
+
+							fileReader.onload = function( fileDataMtl ) {
+
+								app.loadFilesUser({
+									name: 'userObj',
+									objAsArrayBuffer: uint8Array,
+									pathTexture: pathTexture,
+									mtlAsString: fileDataMtl.target.result
+								})
+							};
+							fileReader.readAsText( fileMtl );
+
+						}
+
+					};
+					fileReader.readAsArrayBuffer( fileObj );
+
+				};
+
+				ChargeObjJovin.prototype.loadFilesUser = function ( objDef ) {
+					var prepData = new THREE.OBJLoader2.WWOBJLoader2.PrepDataArrayBuffer(
+						objDef.name, objDef.objAsArrayBuffer, objDef.pathTexture, objDef.mtlAsString
+					);
+					prepData.setSceneGraphBaseNode( this.pivot );
+					prepData.setStreamMeshes( this.streamMeshes );
+					this.wwObjLoader2.prepareRun( prepData );
+					this.wwObjLoader2.run();
+				};
+
+				ChargeObjJovin.prototype.resizeDisplayGL = function () {
+					this.controls.handleResize();
+
+					this.recalcAspectRatio();
+					this.renderer.setSize( this.canvas.offsetWidth, this.canvas.offsetHeight, false );
+
+					this.updateCamera();
+				};
+
+				ChargeObjJovin.prototype.recalcAspectRatio = function () {
+					this.aspectRatio = ( this.canvas.offsetHeight === 0 ) ? 1 : this.canvas.offsetWidth / this.canvas.offsetHeight;
+				};
+
+				ChargeObjJovin.prototype.resetCamera = function () {
+					this.camera.position.copy( this.cameraDefaults.posCamera );
+					this.cameraTarget.copy( this.cameraDefaults.posCameraTarget );
+
+					this.updateCamera();
+				};
+
+				ChargeObjJovin.prototype.updateCamera = function () {
+					this.camera.aspect = this.aspectRatio;
+					this.camera.lookAt( this.cameraTarget );
+					this.camera.updateProjectionMatrix();
+				};
+
+				ChargeObjJovin.prototype.render = function () {
+					if ( ! this.renderer.autoClear ) this.renderer.clear();
+
+					this.controls.update();
+
+					
+//					this.pivot.rotation.x += 0.001;
+					this.pivot.rotation.y += 0.001;
+//					this.pivot.rotation.z += 0.01;
+					
+
+					this.renderer.render( this.scene, this.camera );
+				};
+
+				ChargeObjJovin.prototype.alterSmoothShading = function () {
+
+					var scope = this;
+					scope.smoothShading = ! scope.smoothShading;
+					console.log( scope.smoothShading ? 'Enabling SmoothShading' : 'Enabling FlatShading');
+
+					scope.traversalFunction = function ( material ) {
+						material.shading = scope.smoothShading ? THREE.SmoothShading : THREE.FlatShading;
+						material.needsUpdate = true;
+					};
+					var scopeTraverse = function ( object3d ) {
+						scope.traverseScene( object3d );
+					};
+					scope.pivot.traverse( scopeTraverse );
+				};
+
+				ChargeObjJovin.prototype.alterDouble = function () {
+
+					var scope = this;
+					scope.doubleSide = ! scope.doubleSide;
+					console.log( scope.doubleSide ? 'Enabling DoubleSide materials' : 'Enabling FrontSide materials');
+
+					scope.traversalFunction  = function ( material ) {
+						material.side = scope.doubleSide ? THREE.DoubleSide : THREE.FrontSide;
+					};
+
+					var scopeTraverse = function ( object3d ) {
+						scope.traverseScene( object3d );
+					};
+					scope.pivot.traverse( scopeTraverse );
+				};
+
+				ChargeObjJovin.prototype.setDouble = function () {
+
+					var scope = this;
+
+					console.log( scope.doubleSide ? 'Enabling DoubleSide materials' : 'Enabling FrontSide materials');
+
+					scope.traversalFunction  = function ( material ) {
+						material.side = scope.doubleSide ? THREE.DoubleSide : THREE.FrontSide;
+					};
+
+					var scopeTraverse = function ( object3d ) {
+						scope.traverseScene( object3d );
+					};
+					scope.pivot.traverse( scopeTraverse );
+				};
+
+				ChargeObjJovin.prototype.alterAxis = function () {
+
+					var scope = this;
+					scope.showAxis = ! scope.showAxis;
+					console.log( scope.axis ? 'Enabling axis' : 'Disabling axis');
+
+					scope.axis.visible = scope.showAxis;
+					
+// 					scope.traversalFunction  = function (  ) {
+// 						scope.axis.visible = scope.showAxis;
+// 					};
+
+// 					var scopeTraverse = function ( object3d ) {
+// 						scope.traverseScene( object3d );
+// 					};
+
+// 					scope.pivot.traverse( scopeTraverse );
+				};
+
+				ChargeObjJovin.prototype.setAxis = function () {
+
+					var scope = this;
+//					scope.axis = ! scope.axis;
+					console.log( scope.axis ? 'Enabling axis' : 'Disabling axis');
+					scope.axis.visible = scope.showAxis;
+
+// 					scope.traversalFunction  = function (  ) {
+// 						scope.axis.visible = scope.showAxis;
+// 					};
+
+// 					var scopeTraverse = function ( object3d ) {
+// 						scope.traverseScene( object3d );
+// 					};
+// 					scope.pivot.traverse( scopeTraverse );
+				};
+
+				ChargeObjJovin.prototype.traverseScene = function ( object3d ) {
+
+					if ( object3d.material instanceof THREE.MultiMaterial ) {
+
+						var materials = object3d.material.materials;
+						for ( var name in materials ) {
+
+							if ( materials.hasOwnProperty( name ) )	this.traversalFunction( materials[ name ] );
+
+						}
+
+					} else if ( object3d.material ) {
+
+						this.traversalFunction( object3d.material );
+
+					}
+
+				};
+
+				ChargeObjJovin.prototype.clearAllAssests = function () {
+					var scope = this;
+					var remover = function ( object3d ) {
+
+						if ( object3d === scope.pivot ) {
+							return;
+						}
+						console.log( 'Removing: ' + object3d.name );
+						scope.scene.remove( object3d );
+
+						if ( object3d.hasOwnProperty( 'geometry' ) ) {
+							object3d.geometry.dispose();
+						}
+						if ( object3d.hasOwnProperty( 'material' ) ) {
+
+							var mat = object3d.material;
+							if ( mat.hasOwnProperty( 'materials' ) ) {
+
+								var materials = mat.materials;
+								for ( var name in materials ) {
+
+									if ( materials.hasOwnProperty( name ) ) materials[ name ].dispose();
+
+								}
+							}
+						}
+						if ( object3d.hasOwnProperty( 'texture' ) ) {
+							object3d.texture.dispose();
+						}
+					};
+
+					scope.scene.remove( scope.pivot );
+					scope.pivot.traverse( remover );
+					scope.createPivot();
+				};
+
+				return ChargeObjJovin;
+
+			})();
+
+			// Création de l'instance. Le paramètre est le 'canvas'
+			var app = new ChargeObjJovin( document.getElementById( 'example' ) );
+
+			// Init dat.gui and controls
+			var elemFileInput = document.getElementById( 'fileUploadInput' );
+			// Controls : les paramètres de contrôle pour le rendu. Ils apparaissent dans une fenètre escamotable
+			var WWOBJLoader2Control = function() {
+				this.smoothShading = app.smoothShading;
+				this.doubleSide = app.doubleSide;
+				this.streamMeshes = app.streamMeshes;
+				// DEJ
+				this.showAxis = app.showAxis;
+			};
+			var wwObjLoader2Control = new WWOBJLoader2Control();
+
+			var gui = new dat.GUI( {
+				autoPlace: false,
+				width: 320
+			} );
+
+			// Zone d'affichage de paramètres
+			var menuDiv = document.getElementById( 'dat' );
+			
+			menuDiv.appendChild(gui.domElement);
+			
+			var folderOptions = gui.addFolder( "Options d'affichage" );
+			
+			
+			console.log('Creating smoothShading');
+			var controlSmooth = folderOptions.add( wwObjLoader2Control, 'smoothShading' ).name( 'Lissage' );
+			controlSmooth.onChange( function( value ) {
+				console.log( 'Setting smoothShading to: ' + value );
+				app.alterSmoothShading();
+			});
+
+			console.log('Creating doubleSide');
+			var controlDouble = folderOptions.add( wwObjLoader2Control, 'doubleSide' ).name( 'Texture sur les deux faces' );
+			controlDouble.onChange( function( value ) {
+				console.log( 'Setting doubleSide to: ' + value );
+				app.alterDouble();
+			});
+
+			console.log('Creating streamMeshes');
+			var controlStreamMeshes = folderOptions.add( wwObjLoader2Control, 'streamMeshes' ).name( 'Stream Meshes' );
+			controlStreamMeshes.onChange( function( value ) {
+				console.log( 'Setting streamMeshes to: ' + value );
+				app.streamMeshes = value;
+			});
+
+			// DEJ
+			console.log('Creating showAxis');
+			var controlShowAxis = folderOptions.add( wwObjLoader2Control, 'showAxis' ).name( 'Show Axis' );
+			controlShowAxis.onChange( function( value ) {
+				console.log( 'Setting showAxis to: ' + value );
+				app.showAxis = value;
+			});
+
+			console.log('Creating Texture Path');
+			if ( app.fileApiAvailable ) {
+
+				wwObjLoader2Control.pathTexture = 'obj/Jovin';
+				var controlPathTexture = folderOptions.add( wwObjLoader2Control, 'pathTexture' ).name( 'Relative path to textures' );
+				controlPathTexture.onChange( function( value ) {
+					console.log( 'Setting pathTexture to: ' + value );
+					app.pathTexture = value + '/';
+				});
+
+				wwObjLoader2Control.loadObjFile = function () {
+					elemFileInput.click();
+				};
+				folderOptions.add( wwObjLoader2Control, 'loadObjFile' ).name( 'Load OBJ/MTL Files' );
+
+				var handleFileSelect = function ( object3d ) {
+					app._handleFileSelect( object3d, wwObjLoader2Control.pathTexture );
+				};
+				elemFileInput.addEventListener( 'change' , handleFileSelect, false );
+
+				wwObjLoader2Control.clearAllAssests = function () {
+					app.clearAllAssests();
+				};
+				folderOptions.add( wwObjLoader2Control, 'clearAllAssests' ).name( 'Clear Scene' );
+
+			}
+			
+			// Ouverture par défaut de la zone de contrôle
+			console.log('Opening folderOptions')	;
+			folderOptions.open();
+
+
+
+			// init three.js example application
+			var resizeWindow = function () {
+				app.resizeDisplayGL();
+			};
+
+			// 
+			var render = function () {
+				requestAnimationFrame( render );
+				app.render();
+			};
+
+			window.addEventListener( 'resize', resizeWindow, false );
+
+			console.log( 'Starting initialisation phase...' );
+			app.initGL();
+			app.resizeDisplayGL();
+			app.initPostGL();
+
+			var prepData = new THREE.OBJLoader2.WWOBJLoader2.PrepDataFile(
+				'Jovin',
+				'obj/Jovin/',
+				'jovin.obj',
+				'obj/Jovin/',
+				'jovin.mtl'
+			);
+
+			app.loadFiles( prepData );
+			
+// DEJ
+			app.setDouble();
+
+			// kick render loop
+			render();
+
+		</script>
+	</body>
+</html>

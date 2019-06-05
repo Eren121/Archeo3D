@@ -1,0 +1,18 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 17.01.2014 11:34:36
+
+newmtl 2___Default
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.6980 0.4863 0.3804
+	Kd 0.6980 0.4863 0.3804
+	Ks 0.2610 0.2610 0.2610
+	Ke 0.0000 0.0000 0.0000
+	map_Ka F:\Pottery-2\Map\TRAVERTN.jpg
+	map_Kd F:\Pottery-2\Map\TRAVERTN.jpg
+	map_bump F:\Pottery-2\Map\TRAVERTN.jpg
+	bump F:\Pottery-2\Map\TRAVERTN.jpg

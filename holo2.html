@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <title>Chargement d'objets archéologiques</title>
+    <meta name="remerciements" content="threejs OBJLoader2">
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex,nofollow">
+
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+    <style>
+        body {
+            font-family: Monospace;
+            background-color: #000;
+            color: #fff;
+            margin: 0 0 0 0;
+            padding: 0 0 0 0;
+            border: none;
+            cursor: default;
+            overflow: hidden;
+        }
+        
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        
+        #info {
+            visibility: hidden;
+            display: none;
+        }
+        
+        #data {
+            visibility: hidden;
+            display: none;
+        }
+        
+        footer {
+            visibility: hidden;
+            display: none;
+        }
+        
+        .boite_verte {
+            border: 1px solid green;
+            background-color: white;
+            color: green;
+        }
+        
+        .boite_verte A {
+            color: green;
+        }
+        
+        .boite_verte A:visited {
+            color: darkgreen;
+        }
+        
+        #remarque {
+            color: green;
+        }
+        
+        #info {
+            color: #fff;
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            display: block;
+        }
+        
+        #info a {
+            color: #f00;
+            font-weight: bold;
+            text-decoration: underline;
+            cursor: pointer
+        }
+        
+        #glFullscreen {
+            width: 100%;
+            height: 100vh;
+            min-width: 640px;
+            min-height: 360px;
+            position: relative;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        #example {
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background-color: #000000;
+        }
+        
+        #feedback {
+            color: darkorange;
+        }
+        /*
+#dat {
+	user-select: none;
+	position: absolute;
+	left: 0;
+	top: 0;
+	z-Index: 200;
+	border: 2px solid aqua;
+}
+*/
+        
+        #dat {
+            display: one;
+            visibility: hidden;
+        }
+        
+        .close-button {
+            border: 1px solid aqua;
+            color: lime;
+        }
+        
+        .property-name {
+            width: 60%;
+        }
+        
+        .cr {
+            margin-left: 2em;
+        }
+        
+        #fileUploadInput {
+            display: none;
+        }
+    </style>
+
+    <style type="text/css">
+        .dg ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            clear: both
+        }
+        
+        .dg.ac {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 0;
+            z-index: 0
+        }
+        
+        .dg:not(.ac) .main {
+            overflow: hidden
+        }
+        
+        .dg.main {
+            -webkit-transition: opacity .1s linear;
+            transition: opacity .1s linear
+        }
+        
+        .dg.main.taller-than-window {
+            overflow-y: auto
+        }
+        
+        .dg.main.taller-than-window .close-button {
+            opacity: 1;
+            margin-top: -1px;
+            border-top: 1px solid #2c2c2c
+        }
+        
+        .dg.main ul.closed .close-button {
+            opacity: 1!important
+        }
+        
+        .dg.main .close-button.drag,
+        .dg.main:hover .close-button {
+            opacity: 1
+        }
+        
+        .dg.main .close-button {
+            -webkit-transition: opacity .1s linear;
+            transition: opacity .1s linear;
+            /*border:0*/
+            ;
+            position: absolute;
+            line-height: 19px;
+            height: 20px;
+            cursor: pointer;
+            text-align: center;
+            background-color: #000
+        }
+        
+        .dg.main .close-button:hover {
+            background-color: #111
+        }
+        
+        .dg.a {
+            float: right;
+            margin-right: 15px;
+            overflow-x: hidden
+        }
+        
+        .dg.a.has-save>ul {
+            margin-top: 27px
+        }
+        
+        .dg.a.has-save>ul.closed {
+            margin-top: 0
+        }
+        
+        .dg.a .save-row {
+            position: fixed;
+            top: 0;
+            z-index: 1002
+        }
+        
+        .dg li {
+            -webkit-transition: height .1s ease-out;
+            transition: height .1s ease-out
+        }
+        
+        .dg li:not(.folder) {
+            cursor: auto;
+            height: 27px;
+            line-height: 27px;
+            overflow: hidden;
+            padding: 0 4px 0 5px
+        }
+        
+        .dg li.folder {
+            padding: 0;
+            border-left: 4px solid transparent
+        }
+        
+        .dg li.title {
+            cursor: pointer;
+            margin-left: -4px
+        }
+        
+        .dg .closed li:not(.title),
+        .dg .closed ul li,
+        .dg .closed ul li>* {
+            height: 0;
+            overflow: hidden;
+            border: 0
+        }
+        
+        .dg .cr {
+            clear: both;
+            padding-left: 3px;
+            height: 27px
+        }
+        
+        .dg .property-name {
+            cursor: default;
+            float: left;
+            clear: left;
+            width: 40%;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+        
+        .dg .c {
+            float: left;
+            width: 60%
+        }
+        
+        .dg .c input[type=text] {
+            border: 0;
+            margin-top: 4px;
+            padding: 3px;
+            width: 100%;
+            float: right
+        }
+        
+        .dg .has-slider input[type=text] {
+            width: 30%;
+            margin-left: 0
+        }
+        
+        .dg .slider {
+            float: left;
+            width: 66%;
+            margin-left: -5px;
+            margin-right: 0;
+            height: 19px;
+            margin-top: 4px
+        }
+        
+        .dg .slider-fg {
+            height: 100%
+        }
+        
+        .dg .c input[type=checkbox] {
+            margin-top: 9px
+        }
+        
+        .dg .c select {
+            margin-top: 5px
+        }
+        
+        .dg .cr.boolean,
+        .dg .cr.boolean *,
+        .dg .cr.function,
+        .dg .cr.function *,
+        .dg .cr.function .property-name {
+            cursor: pointer
+        }
+        
+        .dg .selector {
+            display: none;
+            position: absolute;
+            margin-left: -9px;
+            margin-top: 23px;
+            z-index: 10
+        }
+        
+        .dg .c:hover .selector,
+        .dg .selector.drag {
+            display: block
+        }
+        
+        .dg li.save-row {
+            padding: 0
+        }
+        
+        .dg li.save-row .button {
+            display: inline-block;
+            padding: 0 6px
+        }
+        
+        .dg.dialogue {
+            background-color: #222;
+            width: 460px;
+            padding: 15px;
+            font-size: 13px;
+            line-height: 15px
+        }
+        
+        #dg-new-constructor {
+            padding: 10px;
+            color: #222;
+            font-family: Monaco, monospace;
+            font-size: 10px;
+            border: 0;
+            resize: none;
+            box-shadow: inset 1px 1px 1px #888;
+            word-wrap: break-word;
+            margin: 12px 0;
+            display: block;
+            width: 440px;
+            overflow-y: scroll;
+            height: 100px;
+            position: relative
+        }
+        
+        #dg-local-explain {
+            display: none;
+            font-size: 11px;
+            line-height: 17px;
+            border-radius: 3px;
+            background-color: #333;
+            padding: 8px;
+            margin-top: 10px
+        }
+        
+        #dg-local-explain code {
+            font-size: 10px
+        }
+        
+        #dat-gui-save-locally {
+            display: none
+        }
+        
+        .dg {
+            color: #eee;
+            font: 11px Lucida Grande, sans-serif;
+            text-shadow: 0 -1px 0 #111
+        }
+        
+        .dg.main::-webkit-scrollbar {
+            width: 5px;
+            background: #1a1a1a
+        }
+        
+        .dg.main::-webkit-scrollbar-corner {
+            height: 0;
+            display: none
+        }
+        
+        .dg.main::-webkit-scrollbar-thumb {
+            border-radius: 5px;
+            background: #676767
+        }
+        
+        .dg li:not(.folder) {
+            background: #1a1a1a;
+            border-bottom: 1px solid #2c2c2c
+        }
+        
+        .dg li.save-row {
+            line-height: 25px;
+            background: #dad5cb;
+            border: 0
+        }
+        
+        .dg li.save-row select {
+            margin-left: 5px;
+            width: 108px
+        }
+        
+        .dg li.save-row .button {
+            margin-left: 5px;
+            margin-top: 1px;
+            border-radius: 2px;
+            font-size: 9px;
+            line-height: 7px;
+            padding: 4px 4px 5px;
+            background: #c5bdad;
+            color: #fff;
+            text-shadow: 0 1px 0 #b0a58f;
+            box-shadow: 0 -1px 0 #b0a58f;
+            cursor: pointer
+        }
+        
+        .dg li.save-row .button.gears {
+            background: #c5bdad url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAANCAYAAAB/9ZQ7AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAQJJREFUeNpiYKAU/P//PwGIC/ApCABiBSAW+I8AClAcgKxQ4T9hoMAEUrxx2QSGN6+egDX+/vWT4e7N82AMYoPAx/evwWoYoSYbACX2s7KxCxzcsezDh3evFoDEBYTEEqycggWAzA9AuUSQQgeYPa9fPv6/YWm/Acx5IPb7ty/fw+QZblw67vDs8R0YHyQhgObx+yAJkBqmG5dPPDh1aPOGR/eugW0G4vlIoTIfyFcA+QekhhHJhPdQxbiAIguMBTQZrPD7108M6roWYDFQiIAAv6Aow/1bFwXgis+f2LUAynwoIaNcz8XNx3Dl7MEJUDGQpx9gtQ8YCueB+D26OECAAQDadt7e46D42QAAAABJRU5ErkJggg==) 2px 1px no-repeat;
+            height: 7px;
+            width: 8px
+        }
+        
+        .dg li.save-row .button:hover {
+            background-color: #bab19e;
+            box-shadow: 0 -1px 0 #b0a58f
+        }
+        
+        .dg li.folder {
+            border-bottom: 0
+        }
+        
+        .dg li.title {
+            padding-left: 16px;
+            background: #000 url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==) 6px 10px no-repeat;
+            cursor: pointer;
+            border-bottom: 1px solid hsla(0, 0%, 100%, .2)
+        }
+        
+        .dg .closed li.title {
+            background-image: url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlGIWqMCbWAEAOw==)
+        }
+        
+        .dg .cr.boolean {
+            border-left: 3px solid #806787
+        }
+        
+        .dg .cr.color {
+            border-left: 3px solid
+        }
+        
+        .dg .cr.function {
+            border-left: 3px solid #e61d5f
+        }
+        
+        .dg .cr.number {
+            border-left: 3px solid #2fa1d6
+        }
+        
+        .dg .cr.number input[type=text] {
+            color: #2fa1d6
+        }
+        
+        .dg .cr.string {
+            border-left: 3px solid #1ed36f
+        }
+        
+        .dg .cr.string input[type=text] {
+            color: #1ed36f
+        }
+        
+        .dg .cr.boolean:hover,
+        .dg .cr.function:hover {
+            background: #111
+        }
+        
+        .dg .c input[type=text] {
+            background: #303030;
+            outline: none
+        }
+        
+        .dg .c input[type=text]:hover {
+            background: #3c3c3c
+        }
+        
+        .dg .c input[type=text]:focus {
+            background: #494949;
+            color: #fff
+        }
+        
+        .dg .c .slider {
+            background: #303030;
+            cursor: ew-resize
+        }
+        
+        .dg .c .slider-fg {
+            background: #2fa1d6;
+            max-width: 100%
+        }
+        
+        .dg .c .slider:hover {
+            background: #3c3c3c
+        }
+        
+        .dg .c .slider:hover .slider-fg {
+            background: #44abda
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" id="SL_Style" href="holo_fichiers/translator.css">
+</head>
+
+<body>
+    <div id="glFullscreen">
+        <canvas id="example" width="1126" height="360"></canvas>
+    </div>
+    <div id="dat">
+        <div class="dg main" style="-moz-user-select: none; width: 320px;">
+            <ul>
+                <li class="folder">
+                    <div class="dg">
+                        <ul class="closed">
+                            <li class="title">Options d'affichage</li>
+                            <li class="cr boolean">
+                                <div>
+                                    <span class="property-name">Lissage</span>
+                                    <div class="c">
+                                        <input checked="checked" type="checkbox">
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="cr boolean">
+                                <div>
+                                    <span class="property-name">Texture sur les deux faces</span>
+                                    <div class="c">
+                                        <input checked="checked" type="checkbox">
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="cr boolean">
+                                <div><span class="property-name">Stream Meshes</span>
+                                    <div class="c">
+                                        <input checked="checked" type="checkbox">
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="cr string">
+                                <div><span class="property-name">Relative path to textures</span>
+                                    <div class="c">
+                                        <input value="obj/Jovin" type="text">
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="cr function">
+                                <div><span class="property-name">Load OBJ/MTL Files</span>
+                                    <div class="c">
+                                        <div class="button"></div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="cr function">
+                                <div><span class="property-name">Clear Scene</span>
+                                    <div class="c">
+                                        <div class="button"></div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="folder">
+                    <div class="dg">
+                        <ul class="closed">
+                            <li class="title">Environnement</li>
+                            <li class="cr boolean">
+                                <div><span class="property-name">Rotation automatique</span>
+                                    <div class="c">
+                                        <input checked="checked" type="checkbox">
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="cr boolean">
+                                <div><span class="property-name">Show Axis</span>
+                                    <div class="c">
+                                        <input type="checkbox">
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+            <div class="close-button" style="width: 320px;">Fermer les options</div>
+        </div>
+    </div>
+    <footer id="pied_de_page">
+        Créé par <a href="https://crestic.univ-reims.fr/membre/19-eric-desjardin" target="ED">Eric Desjardin</a> 
+		du laboratoire <a href="http://crestic.univ-reims.fr/" target="CReSTIC">CReSTIC</a> à partir de 
+		photographies du tombeau de Jovin et des logiciels <a href="https://remake.autodesk.com/" target="ACR">AutoCad Remake</a>,
+		<a href="http://www.meshlab.net/" target="ML">MeshLab</a> et <a href="https://threejs.org/" target="3JS">Three.js</a>
+		avec la collaboration du
+        <a href="http://www.reims.fr/325/decouvrir-le-musee.htm" target="MSR">musèe	Saint-Remi</a>,
+		du <a href="http://www.reims-histoire-archeologie.com/" target="RHA">RHA</a>,
+		du <a href="http://geaca-reims.blogspot.fr/" target="GEACA">GEACA</a> et du 
+		<a href="http://www.univ-reims.fr/minisite_52/" target="GEGENAA">GEGENAA</a>
+    </footer>
+    <div id="info">
+        <a href="http://www.reims-histoire-archeologie.com/" target="RHA">Tombeau de Jovin</a>
+			- <a href="https://fr.wikipedia.org/wiki/Mus%C3%A9e_Saint-Remi_de_Reims" target="RSM" rel="noopener">Musée Saint-Remi</a>
+			- <a href="http://www.reims.fr/325/decouvrir-le-musee.htm" target="RSM">Reims</a>
+			- <a class="boite_verte" href="#pied_de_page" title="informations sur l'application">Informations</a>
+        <br>
+        <div id="remarque">&lt;-- vous devrez peut-être décocher et recocher l'option Double Side Materials</div>
+
+        <div id="feedback"></div>
+    </div>
+    <input id="fileUploadInput" name="files[]" multiple="" accept=".obj,.mtl" type="file">
+
+    <script src="holo_fichiers/Detector.js"></script>
+    <script src="holo_fichiers/three.js"></script>
+    <script src="holo_fichiers/TrackballControls.js"></script>
+    <script src="holo_fichiers/MTLLoader.js"></script>
+    <script src="holo_fichiers/dat.js"></script>
+
+    <script src="holo_fichiers/OBJLoader2.js"></script>
+    <script src="holo_fichiers/WWOBJLoader2.js"></script>
+    <script>
+        'use strict';
+
+        /** Chargement d'un objet .obj */
+        var ChargeObjJovin = (function() {
+
+            var Validator = THREE.OBJLoader2.prototype._getValidator();
+
+            /** Initiateur
+             * @elementToBind Canvas HTML5 dans lequel sera affiché l'objet
+             */
+            function ChargeObjJovin(elementToBindTo) {
+                this.renderer = null;
+                this.canvas = elementToBindTo;
+                this.aspectRatio = 1;
+                this.recalcAspectRatio();
+
+                this.scene = null;
+                this.cameraDefaults = {
+                    posCamera: new THREE.Vector3(0.0, 175.0, 500.0),
+                    posCameraTarget: new THREE.Vector3(0, 0, 0),
+                    near: 0.1,
+                    far: 10000,
+                    fov: 45
+                };
+                this.camera = null;
+                this.cameraTarget = this.cameraDefaults.posCameraTarget;
+
+                this.controls = null;
+
+                this.smoothShading = true;
+                this.doubleSide = true;
+                this.streamMeshes = true;
+
+                // Gestion de l'application
+                this.showAxis = false;
+                this.autoMove = true;
+                this.sens = 0; // sens de transformation
+
+                // Objet dans lequel sera chargé la poterie
+                this.pivot = null;
+                // Plan de base 
+                this.axis = null;
+
+                this.wwObjLoader2 = new THREE.OBJLoader2.WWOBJLoader2();
+
+                this.wwObjLoader2.setCrossOrigin('anonymous');
+
+                // Check for the various File API support.
+                this.fileApiAvailable = true;
+                if (window.File && window.FileReader && window.FileList && window.Blob) {
+                    console.log('File API is supported! Enabling all features.');
+                } else {
+                    this.fileApiAvailable = false;
+                    console.warn('File API is not supported! Disabling file loading.');
+                }
+            }
+
+            /**
+             */
+            ChargeObjJovin.prototype.initGL = function() {
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: this.canvas,
+                    antialias: true,
+                    autoClear: true
+                });
+                this.renderer.setClearColor(0x050505);
+
+                this.scene = new THREE.Scene();
+
+                this.camera = new THREE.PerspectiveCamera(
+                    this.cameraDefaults.fov, this.aspectRatio,
+                    this.cameraDefaults.near, this.cameraDefaults.far);
+                this.resetCamera();
+                this.controls = new THREE.TrackballControls(this.camera,
+                    this.renderer.domElement);
+
+                var ambientLight = new THREE.AmbientLight(0x404040);
+                var directionalLight1 = new THREE.DirectionalLight(0xC0C090);
+                var directionalLight2 = new THREE.DirectionalLight(0xC0C090);
+
+                directionalLight1.position.set(-100, -50, 100);
+                directionalLight2.position.set(100, 50, -100);
+
+                this.scene.add(directionalLight1);
+                this.scene.add(directionalLight2);
+                this.scene.add(ambientLight);
+
+                this.createAxis(this.showAxis);
+
+                this.createPivot();
+            };
+
+            /** Création du plan cadrillé */
+            ChargeObjJovin.prototype.createAxis = function(visibility) {
+                this.axis = new THREE.GridHelper(1200, 60, 0xFF4444, 0x404040);
+                this.axis.visible = visibility;
+                this.axis.name = "Axis";
+
+                this.scene.add(this.axis);
+                console.log("Création du plan et des axes avec une visibilité : " + visibility);
+            };
+
+            ChargeObjJovin.prototype.createPivot = function() {
+                this.pivot = new THREE.Object3D();
+                this.pivot.name = 'Pivot';
+                console.log("Pivot init 1 : " + this.pivot.position.x + " " +
+					this.pivot.position.y + " " + this.pivot.position.z + " " +
+					this.pivot.rotation.x + " " + this.pivot.rotation.y + " " +
+					this.pivot.rotation.z);
+                console.log("Canvas : " + this.canvas.width + " " + this.canvas.height);
+
+                // Je décale le centre cers le bas pour que l'objet paraisse mieux centré par rapport à son centre
+                this.pivot.position.y -= 80;
+                this.scene.add(this.pivot);
+                console.log("Pivot init 2 : " + this.pivot.position.x + " " +
+				this.pivot.position.y + " " + this.pivot.position.z + " " +
+				this.pivot.rotation.x + " " + this.pivot.rotation.y + " " +
+				this.pivot.rotation.z);
+            };
+
+            ChargeObjJovin.prototype.initPostGL = function() {
+                var reportProgress = function(content) {
+                    console.log('Progress: ' + content);
+                };
+                var materialsLoaded = function(materials) {
+                    var count = Validator.isValid(materials) ? materials.length : 0;
+                    console.log('Loaded #' + count + ' materials.');
+                };
+                var meshLoaded = function(name, bufferGeometry, material) {
+                    console.log('Loaded mesh: ' + name + ' Material name: ' + material.name);
+                };
+                var completedLoading = function() {
+                    console.log('Loading complete!');
+                };
+                this.wwObjLoader2.registerCallbackProgress(reportProgress);
+                this.wwObjLoader2
+                    .registerCallbackCompletedLoading(completedLoading);
+                this.wwObjLoader2
+                    .registerCallbackMaterialsLoaded(materialsLoaded);
+                this.wwObjLoader2.registerCallbackMeshLoaded(meshLoaded);
+
+                return true;
+            };
+
+            ChargeObjJovin.prototype.loadFiles = function(prepData) {
+                prepData.setSceneGraphBaseNode(this.pivot);
+                prepData.setStreamMeshes(this.streamMeshes);
+                this.wwObjLoader2.prepareRun(prepData);
+                this.wwObjLoader2.run();
+            };
+
+            ChargeObjJovin.prototype._handleFileSelect = function(event,
+                pathTexture) {
+                var fileObj = null;
+                var fileMtl = null;
+                var files = event.target.files;
+
+                for (var i = 0, file; file = files[i]; i++) {
+
+                    if (file.name.indexOf('\.obj') > 0 && fileObj === null) {
+                        fileObj = file;
+                    }
+
+                    if (file.name.indexOf('\.mtl') > 0 && fileMtl === null) {
+                        fileMtl = file;
+                    }
+
+                }
+
+                if (!Validator.isValid(fileObj)) {
+                    alert('Unable to load OBJ file from given files.');
+                }
+
+                var fileReader = new FileReader();
+                fileReader.onload = function(fileDataObj) {
+
+                    var uint8Array = new Uint8Array(fileDataObj.target.result);
+                    if (fileMtl === null) {
+
+                        app.loadFilesUser({
+                            name: 'userObj',
+                            objAsArrayBuffer: uint8Array,
+                            pathTexture: pathTexture,
+                            mtlAsString: null
+                        })
+
+                    } else {
+
+                        fileReader.onload = function(fileDataMtl) {
+
+                            app.loadFilesUser({
+                                name: 'userObj',
+                                objAsArrayBuffer: uint8Array,
+                                pathTexture: pathTexture,
+                                mtlAsString: fileDataMtl.target.result
+                            })
+                        };
+                        fileReader.readAsText(fileMtl);
+
+                    }
+
+                };
+                fileReader.readAsArrayBuffer(fileObj);
+
+            };
+
+            ChargeObjJovin.prototype.loadFilesUser = function(objDef) {
+                var prepData = new THREE.OBJLoader2.WWOBJLoader2.PrepDataArrayBuffer(
+                    objDef.name, objDef.objAsArrayBuffer,
+                    objDef.pathTexture, objDef.mtlAsString);
+                prepData.setSceneGraphBaseNode(this.pivot);
+                prepData.setStreamMeshes(this.streamMeshes);
+                this.wwObjLoader2.prepareRun(prepData);
+                this.wwObjLoader2.run();
+            };
+
+            ChargeObjJovin.prototype.resizeDisplayGL = function() {
+                this.controls.handleResize();
+
+                this.recalcAspectRatio();
+                this.renderer.setSize(this.canvas.offsetWidth,
+                    this.canvas.offsetHeight, false);
+
+                this.updateCamera();
+            };
+
+            ChargeObjJovin.prototype.recalcAspectRatio = function() {
+                this.aspectRatio = 
+					(this.canvas.offsetHeight === 0) ?
+						1 : 
+						this.canvas.offsetWidth / this.canvas.offsetHeight;
+            };
+
+            ChargeObjJovin.prototype.resetCamera = function() {
+                this.camera.position.copy(this.cameraDefaults.posCamera);
+                this.cameraTarget.copy(this.cameraDefaults.posCameraTarget);
+
+                this.updateCamera();
+            };
+
+            ChargeObjJovin.prototype.updateCamera = function() {
+                this.camera.aspect = this.aspectRatio;
+                this.camera.lookAt(this.cameraTarget);
+                this.camera.updateProjectionMatrix();
+            };
+
+            /** Calcul du rendu pour affichage.
+             */
+            ChargeObjJovin.prototype.render = function() {
+
+                if (!this.renderer.autoClear)
+                    this.renderer.clear();
+
+                this.controls.update();
+
+                if (this.autoMove) {
+
+                    switch (this.sens) {
+                        case 0:
+                            if (this.pivot.rotation.y > (Math.PI / 5.0)) {
+                                this.sens = 1;
+                                console.log("Passage en mode " + this.sens);
+                                console.log("rotation    : " +
+									this.pivot.rotation.x + " " +
+									this.pivot.rotation.y + " " +
+									this.pivot.rotation.z);
+									console.log("translation : " +
+									this.pivot.position.x + " " +
+									this.pivot.position.y + " " +
+									this.pivot.position.z);
+
+                            } else {
+                                this.pivot.rotation.y += 0.001;
+                                this.axis.rotation.y += 0.001;
+                            }
+                            break;
+
+                        case 1:
+                            if (this.pivot.rotation.y < (-Math.PI / 5.0)) {
+                                this.sens = 2;
+                                console.log("Passage en mode " + this.sens);
+                                console.log("rotation    : " +
+									this.pivot.rotation.x + " " +
+									this.pivot.rotation.y + " " +
+									this.pivot.rotation.z);
+                                console.log("translation : " +
+									this.pivot.position.x + " " +
+									this.pivot.position.y + " " +
+									this.pivot.position.z);
+
+                            } else {
+                                this.pivot.rotation.y -= 0.001;
+                                this.axis.rotation.y -= 0.001;
+                            }
+                            break;
+
+                        case 2:
+                            if (Math.abs(this.pivot.rotation.y) < 0.001) {
+                                this.sens = 3;
+                                console.log("Passage en mode " + this.sens);
+                                console.log("rotation    : " +
+									this.pivot.rotation.x + " " +
+									this.pivot.rotation.y + " " +
+									this.pivot.rotation.z);
+                                console.log("translation : " +
+									this.pivot.position.x + " " +
+									this.pivot.position.y + " " +
+									this.pivot.position.z);
+
+                                this.pivot.rotation.y = 0.0;
+                                this.axis.rotation.y = 0.0;
+                            } else {
+                                this.pivot.rotation.y += 0.001;
+                                this.axis.rotation.y += 0.001;
+                            }
+                            break;
+
+                        case 3:
+                            if (this.pivot.position.x > 40.0) {
+                                this.sens = 4;
+                                console.log("Passage en mode " + this.sens);
+                                console.log("rotation    : " +
+									this.pivot.rotation.x + " " +
+									this.pivot.rotation.y + " " +
+									this.pivot.rotation.z);
+                                console.log("translation : " +
+									this.pivot.position.x + " " +
+									this.pivot.position.y + " " +
+									this.pivot.position.z);
+
+                            } else
+                                this.pivot.position.x += 0.2;
+                            break;
+
+                        case 4:
+                            if (this.pivot.position.x < -40.0) {
+                                this.sens = 5;
+                                console.log("Passage en mode " + this.sens);
+                                console.log("rotation    : " +
+									this.pivot.rotation.x + " " +
+									this.pivot.rotation.y + " " +
+									this.pivot.rotation.z);
+                                console.log("translation : " +
+									this.pivot.position.x + " " +
+									this.pivot.position.y + " " +
+									this.pivot.position.z);
+
+                            } else
+                                this.pivot.position.x -= 0.2;
+                            break;
+
+                        case 5:
+                            if (Math.abs(this.pivot.position.x) < 0.2) {
+                                this.sens = 0;
+                                 console.log("Passage en mode " + this.sens);
+                                console.log("rotation    : " +
+									this.pivot.rotation.x + " " +
+									this.pivot.rotation.y + " " +
+									this.pivot.rotation.z);
+                                console.log("translation : " +
+									this.pivot.position.x + " " +
+									this.pivot.position.y + " " +
+									this.pivot.position.z);
+
+                                this.pivot.position.x = 0.0
+                            } else
+                                this.pivot.position.x += 0.2;
+                            break;
+
+                        case 6:
+                            console.log("rotation XX : " + this.pivot.rotation.x + " " + this.pivot.rotation.y + " " + this.pivot.rotation.z);
+                            if (this.pivot.rotation.x < -(Math.PI / 3.0)) {
+                                this.sens = 7;
+                                 console.log("Passage en mode " + this.sens);
+                                console.log("rotation    : " +
+									this.pivot.rotation.x + " " +
+									this.pivot.rotation.y + " " +
+									this.pivot.rotation.z);
+                                console.log("translation : " +
+									this.pivot.position.x + " " +
+									this.pivot.position.y + " " +
+									this.pivot.position.z);
+
+                            } else {
+                                this.pivot.rotation.x -= 0.001;
+                                this.axis.rotation.x -= 0.001;
+                            }
+                            break;
+
+                        case 7:
+                            if (((Math.abs(this.pivot.rotation.x) - Math.PI) / 8.0) < 0.001) {
+                                this.sens = 0;
+                                console.log("Passage en mode " + this.sens);
+                                console.log("rotation    : " +
+									this.pivot.rotation.x + " " +
+									this.pivot.rotation.y + " " +
+									this.pivot.rotation.z);
+                                console.log("translation : " +
+									this.pivot.position.x + " " +
+									this.pivot.position.y + " " +
+									this.pivot.position.z);
+
+                            } else {
+                                this.pivot.rotation.x += 0.001;
+                                this.axis.rotation.x += 0.001;
+                            }
+                            break;
+
+                            /*
+								case 8:
+									if ( ((Math.abs(this.pivot.rotation.x) - Math.PI)/8.0 )< 0.001 ){
+										this.sens = 9;
+										console.log("Passage en mode "+this.sens);
+										console.log("rotation    : " + this.pivot.rotation.x + " " + this.pivot.rotation.y + " "  + this.pivot.rotation.z);	console.log("translation : " + this.pivot.position.x + " " + this.pivot.position.y + " "  + this.pivot.position.z);
+
+									}
+									else {
+										this.pivot.rotation.x += 0.001;
+										this.axis.rotation.x  += 0.001;
+									}
+									break;
+                            */
+
+                        default:
+                            console.log("Valeur du sens inconnue : " + this.sens);
+                            this.sens = 0;
+                    }
+                }
+
+                // Affichage
+                this.renderer.render(this.scene, this.camera);
+            };
+
+            /** Bascule entre le lissage ou non des facettes.
+             */
+            ChargeObjJovin.prototype.alterSmoothShading = function() {
+
+                var scope = this;
+                scope.smoothShading = !scope.smoothShading;
+                console.log(scope.smoothShading ? 'Enabling SmoothShading' : 'Enabling FlatShading');
+
+                scope.traversalFunction = function(material) {
+                    material.shading = scope.smoothShading ? THREE.SmoothShading : THREE.FlatShading;
+                    material.needsUpdate = true;
+                };
+                var scopeTraverse = function(object3d) {
+                    scope.traverseScene(object3d);
+                };
+                scope.pivot.traverse(scopeTraverse);
+            };
+
+            /** Bascule entre affichage de la texture sur les 2 faces ou 1 seule
+             */
+            ChargeObjJovin.prototype.alterDouble = function() {
+
+                var scope = this;
+                scope.doubleSide = !scope.doubleSide;
+                console.log(
+                    scope.doubleSide ?
+                    'Enabling DoubleSide materials' :
+                    'Enabling FrontSide materials'
+                );
+
+                scope.traversalFunction = function(material) {
+                    material.side = scope.doubleSide ? THREE.DoubleSide : THREE.FrontSide;
+                };
+
+                var scopeTraverse = function(object3d) {
+                    scope.traverseScene(object3d);
+                };
+                scope.pivot.traverse(scopeTraverse);
+            };
+
+            /** Tentative de forcage de l'affichage en texture double face
+             */
+            ChargeObjJovin.prototype.setDouble = function() {
+
+                var scope = this;
+
+                console.log(scope.doubleSide ? 'Enabling DoubleSide materials' : 'Enabling FrontSide materials');
+
+                scope.traversalFunction = function(material) {
+                    material.side = scope.doubleSide ? THREE.DoubleSide : THREE.FrontSide;
+                };
+
+                var scopeTraverse = function(object3d) {
+                    scope.traverseScene(object3d);
+                };
+                scope.pivot.traverse(scopeTraverse);
+            };
+
+            /** Bascule de l'affichage de la grille et de son repère
+             */
+            ChargeObjJovin.prototype.alterShowAxis = function() {
+
+                var scope = this;
+                scope.showAxis = !scope.showAxis;
+                scope.axis.visible = scope.showAxis;
+
+                console.log(scope.axis ? 'Enabling axis' : 'Disabling axis');
+
+            };
+
+            /** Bascule entre autoRotation ou non.<br />
+             *   NB : la rotation est réalisée dans 'render' 
+             */
+            ChargeObjJovin.prototype.alterAutoMove = function() {
+
+                var scope = this;
+                scope.autoMove = !scope.autoMove;
+
+                console.log(scope.autoMove ?
+                    'Activation de la rotation automatique' :
+                    'Annulation de la rotation automatique');
+
+            };
+
+            ChargeObjJovin.prototype.traverseScene = function(object3d) {
+
+                if (object3d.material instanceof THREE.MultiMaterial) {
+
+                    var materials = object3d.material.materials;
+                    for (var name in materials) {
+
+                        if (materials.hasOwnProperty(name))
+                            this.traversalFunction(materials[name]);
+
+                    }
+
+                } else if (object3d.material) {
+
+                    this.traversalFunction(object3d.material);
+
+                }
+
+            };
+
+            ChargeObjJovin.prototype.clearAllAssests = function() {
+                var scope = this;
+                var remover = function(object3d) {
+
+                    if (object3d === scope.pivot) {
+                        return;
+                    }
+                    console.log('Removing: ' + object3d.name);
+                    scope.scene.remove(object3d);
+
+                    if (object3d.hasOwnProperty('geometry')) {
+                        object3d.geometry.dispose();
+                    }
+                    if (object3d.hasOwnProperty('material')) {
+
+                        var mat = object3d.material;
+                        if (mat.hasOwnProperty('materials')) {
+
+                            var materials = mat.materials;
+                            for (var name in materials) {
+
+                                if (materials.hasOwnProperty(name))
+                                    materials[name].dispose();
+
+                            }
+                        }
+                    }
+                    if (object3d.hasOwnProperty('texture')) {
+                        object3d.texture.dispose();
+                    }
+                };
+
+                scope.scene.remove(scope.pivot);
+                scope.pivot.traverse(remover);
+                scope.createPivot();
+            };
+
+            return ChargeObjJovin;
+
+        })();
+
+        // Création de l'instance. Le paramètre est le 'canvas'
+        var app = new ChargeObjJovin(document.getElementById('example'));
+
+        // Init dat.gui and controls
+        var elemFileInput = document.getElementById('fileUploadInput');
+
+        // Controls : les paramètres de contrôle pour le rendu. Ils apparaissent dans une fenêtre escamotable
+        var WWOBJLoader2Control = function() {
+            this.smoothShading = app.smoothShading;
+            this.doubleSide = app.doubleSide;
+            this.streamMeshes = app.streamMeshes;
+            this.showAxis = app.showAxis;
+            this.autoMove = app.autoMove;
+        };
+        var wwObjLoader2Control = new WWOBJLoader2Control();
+
+        var gui = new dat.GUI({
+            autoPlace: false,
+            width: 320
+        });
+
+        // Zone d'affichage de param�tres
+        var menuDiv = document.getElementById('dat');
+
+        menuDiv.appendChild(gui.domElement);
+
+        var folderOptionsAffichage = gui.addFolder("Options d'affichage");
+
+        console.log('Creating smoothShading');
+        var controlSmooth = folderOptionsAffichage.add(wwObjLoader2Control,
+            'smoothShading').name('Lissage');
+        controlSmooth.onChange(function(value) {
+            console.log('Setting smoothShading to: ' + value);
+            app.alterSmoothShading();
+        });
+
+        console.log('Creating doubleSide');
+        var controlDouble = folderOptionsAffichage
+            .add(wwObjLoader2Control, 'doubleSide').name(
+                'Texture sur les deux faces');
+        controlDouble.onChange(function(value) {
+            console.log('Setting doubleSide to: ' + value);
+            app.alterDouble();
+        });
+
+        console.log('Creating streamMeshes');
+        var controlStreamMeshes = folderOptionsAffichage.add(wwObjLoader2Control,
+            'streamMeshes').name('Stream Meshes');
+        controlStreamMeshes.onChange(function(value) {
+            console.log('Setting streamMeshes to: ' + value);
+            app.streamMeshes = value;
+        });
+
+        console.log('Creating Texture Path');
+        if (app.fileApiAvailable) {
+
+            wwObjLoader2Control.pathTexture = 'obj/Jovin';
+            var controlPathTexture = folderOptionsAffichage.add(wwObjLoader2Control,
+                'pathTexture').name('Relative path to textures');
+            controlPathTexture.onChange(function(value) {
+                console.log('Setting pathTexture to: ' + value);
+                app.pathTexture = value + '/';
+            });
+
+            wwObjLoader2Control.loadObjFile = function() {
+                elemFileInput.click();
+            };
+            folderOptionsAffichage.add(wwObjLoader2Control, 'loadObjFile').name(
+                'Load OBJ/MTL Files');
+
+            var handleFileSelect = function(object3d) {
+                app._handleFileSelect(object3d,
+                    wwObjLoader2Control.pathTexture);
+            };
+            elemFileInput.addEventListener('change', handleFileSelect, false);
+
+            wwObjLoader2Control.clearAllAssests = function() {
+                app.clearAllAssests();
+            };
+            folderOptionsAffichage.add(wwObjLoader2Control, 'clearAllAssests').name(
+                'Clear Scene');
+
+        }
+
+        // Ouverture par défaut de la zone de contrôle
+        console.log('Opening folderOptionsAffichage');
+        folderOptionsAffichage.close();
+
+        // DEJ : Comportement de l'Application
+        var folderOptionsEnvironnement = gui.addFolder("Environnement");
+
+        // DEJ
+        console.log('Creating autoMove');
+        var controlAutoMove = folderOptionsEnvironnement.add(wwObjLoader2Control, 'autoMove').name('Rotation automatique');
+        controlAutoMove.onChange(function(value) {
+            console.log('Setting autoMove to: ' + value);
+            app.alterAutoMove();
+        });
+
+        // DEJ
+        console.log('Creating showAxis');
+        var controlShowAxis = folderOptionsEnvironnement
+            .add(wwObjLoader2Control, 'showAxis').name('Show Axis');
+        controlShowAxis.onChange(function(value) {
+            console.log('Setting showAxis to: ' + value);
+            //			app.showAxis = value;
+            app.alterShowAxis();
+        });
+
+        // init three.js example application
+        var resizeWindow = function() {
+            app.resizeDisplayGL();
+        };
+
+        // 
+        var render = function() {
+            requestAnimationFrame(render);
+            app.render();
+        };
+
+        window.addEventListener('resize', resizeWindow, false);
+
+        console.log('Starting initialisation phase...');
+        app.initGL();
+        app.resizeDisplayGL();
+        app.initPostGL();
+
+        var prepData = new THREE.OBJLoader2.WWOBJLoader2.PrepDataFile('Jovin',
+            'obj/Jovin/', 'jovin.obj', 'obj/Jovin/', 'jovin.mtl');
+
+        app.loadFiles(prepData);
+
+        // DEJ
+        app.setDouble();
+
+        // kick render loop
+        render();
+    </script>
+
+    </body>
+
+</html>
